@@ -4,7 +4,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'io.fabric.tools:gradle:1.+'
+        classpath 'io.fabric.tools:gradle:1.25.0'
     }
 }
 
@@ -17,13 +17,13 @@ repositories {
 apply plugin: 'io.fabric'
 
 android {
-    compileSdkVersion 25
+    compileSdkVersion 27
     buildToolsVersion '26.0.2'
 
     defaultConfig {
         applicationId "com.spicymango.fanfictionreader"
-        minSdkVersion 9
-        targetSdkVersion 25
+        minSdkVersion 14
+        targetSdkVersion 27
         versionCode 80
         versionName "1.54"
     }
@@ -38,7 +38,7 @@ android {
         release
     }
     buildTypes {
-        debug{
+        debug {
             ext.enableCrashlytics = false
         }
         release {
@@ -56,8 +56,8 @@ android {
 
 dependencies {
     compile project(':kolavar')
-    compile 'com.android.support:appcompat-v7:25.4.0'
-    compile 'com.android.support:design:25.4.0'
+    compile 'com.android.support:appcompat-v7:27.0.2'
+    compile 'com.android.support:design:27.0.2'
     compile 'org.jsoup:jsoup:1.10.3'
     compile 'org.apache.commons:commons-collections4:4.1'
     compile 'org.apache.commons:commons-lang3:3.6'
@@ -68,6 +68,7 @@ dependencies {
 
 // If the signing configurations are defined in the local gradle.properties, add them to the script
 if (project.hasProperty('key.alias')) {
+    println 'Found keystore'
     android.signingConfigs.release.keyAlias = project.property('key.alias')
     android.signingConfigs.release.keyPassword = project.property('key.alias.password')
     android.signingConfigs.release.storeFile = file(project.property('key.store'))

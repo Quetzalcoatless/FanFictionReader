@@ -330,7 +330,7 @@ class DownloaderFactory {
 				dateDownloaded = null;
 				dateLastRead = null;
 			} else{
-				// Determine the last time the story was updated
+				// Determine the last time the story was updated and read
 				dateDownloaded = new Date(c.getLong(c.getColumnIndex(SqlConstants.KEY_ADDED)));
 				dateLastRead = new Date(c.getLong(c.getColumnIndex(SqlConstants.KEY_LAST_READ)));
 				c.close();

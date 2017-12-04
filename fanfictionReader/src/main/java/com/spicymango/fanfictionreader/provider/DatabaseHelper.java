@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 class DatabaseHelper extends SQLiteOpenHelper implements SqlConstants {
 
-	private static final int DATABASE_VERSION = 12; //Database version 11
+	private static final int DATABASE_VERSION = 12; //Database version 12
 	private static final String DATABASE_NAME = "library.db";
 
 	//The name of the FanFiction table and the full text search virtual table
@@ -250,5 +250,11 @@ class DatabaseHelper extends SQLiteOpenHelper implements SqlConstants {
             db.execSQL("ALTER TABLE " + FANFICTION_TABLE + " ADD COLUMN " + KEY_ADDED + " INTEGER DEFAULT 0");
             db.execSQL("ALTER TABLE " + FANFICTION_TABLE + " ADD COLUMN " + KEY_LAST_READ + " INTEGER DEFAULT 0");
 		}
+	}
+
+	@Override
+	public void onOpen(SQLiteDatabase db)
+	{
+		//db.execSQL("UPDATE " + FANFICTION_TABLE + " SET " + KEY_ADDED + " = 0");
 	}
 }

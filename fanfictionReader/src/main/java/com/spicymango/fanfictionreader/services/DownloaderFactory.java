@@ -275,10 +275,10 @@ class DownloaderFactory {
 				mStory = parseDetails(document);
 
 				// If an error occurs while parsing, quit
-				// Note that there are two possibilities: either the author deleted the story
+				// Note that there are two possibilities: either the error is in the server (which should fail silently)
 				// or there is an issue in the app
 				if (mStory == null) {
-					if (document.body().text().contains("Story Not Found")) {
+					if (document.body().text().contains("Story Not Found") || document.body().text().contains("FanFiction.Net Error Type 1")) {
 						// If the story was deleted from the web site, pass the error to the previous layer
 						throw new StoryNotFoundException("Story " + mStoryId + " does not exist");
 					} else {
@@ -289,9 +289,15 @@ class DownloaderFactory {
 
 			// Load the chapter itself
 			String storyText = document.select("div#storytext").html();
+
 			if (storyText == null || storyText.length() == 0) {
-				throw new ParseException("Error reading story text for id: "
-												 + mStoryId + " and chapter " + mCurrentPage, 0);
+				if (document.body().text().contains("FanFiction.Net Error Type 1")) {
+					// If a server error occurs, ignore the story
+					throw new StoryNotFoundException("Story " + mStoryId + " does not exist");
+				} else {
+					throw new ParseException("Error reading story text for id: "
+													 + mStoryId + " and chapter " + mCurrentPage, 0);
+				}
 			}
 
 			// Save the chapter on the sparse array

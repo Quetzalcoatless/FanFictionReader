@@ -7,11 +7,16 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import android.annotation.TargetApi;
 import android.content.Context;
@@ -241,20 +246,30 @@ public class FileHandler {
 		if (file == null)
 			return null;
 
-		BufferedInputStream fin = null;
+		InputStream fin = null;
 		String result = null;
 
 		try {
 			fin = new BufferedInputStream(new FileInputStream(file));
 			byte[] buffer = new byte[(int) file.length()];
-			fin.read(buffer);
 
-			if (file.getName().contains(".htm")) {
-				// HTML File
+			if (file.getName().endsWith(".gz")) {
+				fin = new GZIPInputStream(fin);
+				StringWriter sw = new StringWriter();
+				int len;
+				while ((len = fin.read(buffer)) != -1) {
+					sw.write(new String(buffer, 0, len));
+				}
+				result = sw.toString();
+			}
+			else {
+				fin.read(buffer);
 				result = new String(buffer);
-			} else if (file.getName().contains(".txt")) {
+			}
+
+			if (file.getName().contains(".txt")) {
 				// Text File
-				result = Html.toHtml(new SpannedString(new String(buffer)));
+				result = Html.toHtml(new SpannedString(result));
 			}
 		} catch (IOException e) {
 			Log.e(FileHandler.class.getName(), "Error loading file", e);
@@ -264,6 +279,10 @@ public class FileHandler {
 		return result;
 	}
 
+	/**
+	 * @deprecated Does not support compressed files
+	 */
+	@Deprecated
 	public static String getRawFile(Context context, long storyId,
 			int currentPage) {
 
@@ -328,10 +347,11 @@ public class FileHandler {
 	 */
 	public static void writeFile(Context context, long storyId,
 			int currentPage, String html) throws IOException {
-		FileOutputStream fos = null;
+		OutputStream fos = null;
+		boolean compressionEnabled = Settings.isCompressionEnabled(context);
 		try {
 			final File file;
-			final String filename = storyId + "_" + currentPage + ".htm";
+			final String filename = storyId + "_" + currentPage + (compressionEnabled ? ".htm.gz" : ".htm");
 
 			if (Settings.shouldWriteToSD(context)) {
 				// Write the story to the SD card if possible, otherwise use the
@@ -351,6 +371,10 @@ public class FileHandler {
 			deleteChapter(context, storyId, currentPage);
 
 			fos = new FileOutputStream(file);
+			if (compressionEnabled) {
+				fos = new GZIPOutputStream(fos);
+			}
+
 			fos.write(html.getBytes());
 		} finally {
 			closeStream(fos);

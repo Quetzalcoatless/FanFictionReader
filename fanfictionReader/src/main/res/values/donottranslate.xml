@@ -52,6 +52,7 @@
     <string name="pref_key_theme" translatable="false">Application Theme</string>
     <string name="pref_key_volume_scroll" translatable="false">Volume Scroll</string>
     <string name="pref_key_locale" translatable="false">Locale</string>
+    <string name="pref_key_compression" translatable="false">Compress Downloaded Chapters</string>
 
     <!-- Browse Menu Activity -->
     <string-array name="browse_menu_ff">

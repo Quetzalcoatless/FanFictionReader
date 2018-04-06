@@ -10,6 +10,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
@@ -28,6 +29,7 @@ import android.support.v4.preference.PreferenceFragment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.DisplayMetrics;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import java.util.Locale;
 
@@ -94,6 +96,9 @@ public class Settings extends AppCompatActivity {
 			final Preference installLocation = findPreference(getString(R.string.pref_key_loc));
 			installLocation.setEnabled(isSdCardAvailable);
 			installLocation.setOnPreferenceChangeListener(this);
+
+			final Preference compressionEnabled = findPreference(getString(R.string.pref_key_compression));
+			compressionEnabled.setOnPreferenceChangeListener(this);
 
 			// Check if the theme is changed in order to recreate the activity
 			final Preference themeChanged = findPreference(getString(R.string.pref_key_theme));
@@ -175,6 +180,10 @@ public class Settings extends AppCompatActivity {
 						startActivity(i);
 						return false;
 					}
+				case "Compress Downloaded Chapters":
+					// TODO: Add dialog offering to compress all existing chapters
+					showCompressDialog((boolean) newValue);
+					return true;
 				default:
 					return true;
 			}
@@ -185,6 +194,23 @@ public class Settings extends AppCompatActivity {
 			dialog.setTitle(R.string.pref_loc_diag_title);
 			dialog.setMessage(R.string.pref_loc_diag);
 			dialog.setNeutralButton(android.R.string.ok, null);
+			dialog.show();
+		}
+
+		private void showCompressDialog(boolean enableCompression) {
+			AlertDialog.Builder dialog = new Builder(getActivity());
+			dialog.setTitle(R.string.pref_compress_diag_title);
+			dialog.setMessage((enableCompression ? R.string.pref_compress_diag_compress
+					: R.string.pref_compress_diag_decompress));
+			dialog.setPositiveButton(android.R.string.ok, (!enableCompression ? null
+			: new DialogInterface.OnClickListener() {
+				@Override
+				public void onClick(DialogInterface dialogInterface, int i) {
+					Toast.makeText(getContext(), "Would compress files now.", Toast.LENGTH_SHORT).show();
+
+				}
+			}));
+			dialog.setCancelable(true);
 			dialog.show();
 		}
 
@@ -293,6 +319,11 @@ public class Settings extends AppCompatActivity {
 		default:
 			return Typeface.DEFAULT;
 		}
+	}
+
+	public static boolean isCompressionEnabled(Context context){
+		SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
+		return sharedPref.getBoolean(context.getString(R.string.pref_key_compression), false);
 	}
 
 	/**

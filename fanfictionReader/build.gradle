@@ -4,7 +4,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'io.fabric.tools:gradle:1.+'
+        classpath 'io.fabric.tools:gradle:1.25.0'
     }
 }
 
@@ -17,13 +17,13 @@ repositories {
 apply plugin: 'io.fabric'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion '26.0.2'
+    compileSdkVersion 27
+    buildToolsVersion '27.0.3'
 
     defaultConfig {
         applicationId "com.spicymango.fanfictionreader"
-        minSdkVersion 9
-        targetSdkVersion 25
+        minSdkVersion 14
+        targetSdkVersion 27
         versionCode 87
         versionName "1.57b"
     }
@@ -38,7 +38,7 @@ android {
         release
     }
     buildTypes {
-        debug{
+        debug {
             ext.enableCrashlytics = false
         }
         release {
@@ -55,21 +55,20 @@ android {
 }
 
 dependencies {
-    compile project(':kolavar')
-    compile 'io.reactivex.rxjava2:rxandroid:2.0.1'
-    compile 'io.reactivex.rxjava2:rxjava:2.1.7'
-    compile 'com.android.support:appcompat-v7:25.4.0'
-    compile 'com.android.support:design:25.4.0'
-    compile 'org.jsoup:jsoup:1.11.2'
-    compile 'org.apache.commons:commons-collections4:4.1'
-    compile 'org.apache.commons:commons-lang3:3.7'
-    compile('com.crashlytics.sdk.android:crashlytics:2.6.8@aar') {
+    implementation project(':kolavar')
+    implementation 'com.android.support:appcompat-v7:27.1.0'
+    implementation 'com.android.support:design:27.1.0'
+    implementation 'org.jsoup:jsoup:1.11.2'
+    implementation 'org.apache.commons:commons-collections4:4.1'
+    implementation 'org.apache.commons:commons-lang3:3.7'
+    implementation('com.crashlytics.sdk.android:crashlytics:2.6.8@aar') {
         transitive = true
     }
 }
 
 // If the signing configurations are defined in the local gradle.properties, add them to the script
 if (project.hasProperty('key.alias')) {
+    println 'Found keystore'
     android.signingConfigs.release.keyAlias = project.property('key.alias')
     android.signingConfigs.release.keyPassword = project.property('key.alias.password')
     android.signingConfigs.release.storeFile = file(project.property('key.store'))

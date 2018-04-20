@@ -45,13 +45,22 @@ public class FileHandler {
 										int currentPage) {
 		// Declare Variables
 		final FilenameFilter filter = new FileFilter(storyId, currentPage);
-		final File file = findFile(filter, context);
+		final List<File> files = findFiles(filter, context);
 
-		//Check the file exists
-		if (file == null) return false;
+		boolean success = true;
 
-		//Delete the file
-		return file.delete();
+		// If there is nothing to delete, return a failure
+		if (files.size() == 0) return false;
+
+		for (File file: files) {
+			success &= file.delete();
+		}
+
+		if (!success)
+			Log.d(FileHandler.class.getName(), "Chapter " + currentPage
+					+ " of the story with the id " + storyId + " was not successfully deleted");
+
+		return success;
 	}
 
 	/**
@@ -68,14 +77,14 @@ public class FileHandler {
 		boolean success = true;
 
 		// If there is nothing to delete, return a failure
-		if (files.size() == 0) success = false;
+		if (files.size() == 0) return false;
 
 		for (File chapter: files) {
 			success &= chapter.delete();
 		}
 
 		if (!success)
-			Log.d(FileHandler.class.getName(), "The story with the id " + storyId + " was not successfuly deleted");
+			Log.d(FileHandler.class.getName(), "The story with the id " + storyId + " was not successfully deleted");
 
 		return success;
 	}
@@ -251,21 +260,17 @@ public class FileHandler {
 
 		try {
 			fin = new BufferedInputStream(new FileInputStream(file));
-			byte[] buffer = new byte[(int) file.length()];
-
 			if (file.getName().endsWith(".gz")) {
 				fin = new GZIPInputStream(fin);
-				StringWriter sw = new StringWriter();
-				int len;
-				while ((len = fin.read(buffer)) != -1) {
-					sw.write(new String(buffer, 0, len));
-				}
-				result = sw.toString();
 			}
-			else {
-				fin.read(buffer);
-				result = new String(buffer);
+
+			final StringWriter sw = new StringWriter();
+			byte[] buffer = new byte[8192];
+			int len;
+			while ((len = fin.read(buffer)) != -1) {
+				sw.write(new String(buffer, 0, len));
 			}
+			result = sw.toString();
 
 			if (file.getName().contains(".txt")) {
 				// Text File
@@ -279,10 +284,6 @@ public class FileHandler {
 		return result;
 	}
 
-	/**
-	 * @deprecated Does not support compressed files
-	 */
-	@Deprecated
 	public static String getRawFile(Context context, long storyId,
 			int currentPage) {
 
@@ -294,15 +295,22 @@ public class FileHandler {
 			return null;
 		}
 
-		BufferedInputStream fin = null;
+		InputStream fin = null;
 		String result = null;
 
 		try {
 			fin = new BufferedInputStream(new FileInputStream(file));
-			byte[] buffer = new byte[(int) file.length()];
-			fin.read(buffer);
-			fin.close();
-			result = new String(buffer);
+			if (file.getName().endsWith(".gz")) {
+				fin = new GZIPInputStream(fin);
+			}
+
+			final StringWriter sw = new StringWriter();
+			byte[] buffer = new byte[8192];
+			int len;
+			while ((len = fin.read(buffer)) != -1) {
+				sw.write(new String(buffer, 0, len));
+			}
+			result = sw.toString();
 
 		} catch (IOException e) {
 			Log.e(FileHandler.class.getName(), "Error loading raw file", e);
@@ -469,7 +477,10 @@ public class FileHandler {
 	 * Filters the filenames based on the story id and the chapter number
 	 */
 	private static final class FileFilter implements FilenameFilter {
-		private final Matcher matcher;
+		private static final Pattern pattern = Pattern.compile("(\\d+)_(\\d+)\\..*");
+		private final Matcher matcher = pattern.matcher("");
+		private final long storyId;
+		private final int currentPage;
 
 		/**
 		 * Filters the file for a specific story and chapter
@@ -477,9 +488,8 @@ public class FileHandler {
 		 * @param currentPage
 		 */
 		public FileFilter(long storyId, int currentPage) {
-			Pattern pattern = Pattern.compile(Long.toString(storyId) + "_"
-													  + Integer.toString(currentPage) + "\\..*");
-			matcher = pattern.matcher("");
+			this.storyId = storyId;
+			this.currentPage = currentPage;
 		}
 
 		/**
@@ -487,14 +497,22 @@ public class FileHandler {
 		 * @param storyId
 		 */
 		public FileFilter(long storyId) {
-			Pattern pattern = Pattern.compile(Long.toString(storyId) + "_\\d++\\..*");
-			matcher = pattern.matcher("");
+			this.storyId = storyId;
+			this.currentPage = -1;
 		}
 
 		@Override
 		public boolean accept(File dir, String filename) {
 			matcher.reset(filename);
-			return matcher.matches();
+
+			// Check if it's a fanfiction chapter
+			if (!matcher.matches()) return false;
+
+			// Match on story ID
+			if (Long.parseLong(matcher.group(1)) != storyId) return false;
+
+			// Match on chapter if one was set in the constructor
+			return (currentPage < 0) || (Integer.parseInt(matcher.group(2)) == currentPage);
 		}
 	}
 }

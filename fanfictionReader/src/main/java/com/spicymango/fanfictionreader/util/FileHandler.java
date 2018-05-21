@@ -43,17 +43,17 @@ public class FileHandler {
 	 */
 	public static boolean deleteChapter(Context context, long storyId,
 										int currentPage) {
-		// Declare Variables
-		final FilenameFilter filter = new FileFilter(storyId, currentPage);
-		final List<File> files = findFiles(filter, context);
-
 		boolean success = true;
-
-		// If there is nothing to delete, return a failure
-		if (files.size() == 0) return false;
-
-		for (File file: files) {
-			success &= file.delete();
+		final String[] validEndings = { ".txt", ".htm", ".txt.gz", ".htm.gz" };
+		for (File dir : getWritableBaseDirectories(context)) {
+			final String namePrefix = Long.toString(storyId) + "_" + Integer.toString(currentPage);
+			for (String ending : validEndings) {
+				final File file = new File(dir, namePrefix + ending);
+				if (file.exists()) {
+					Log.d(FileHandler.class.getName(), "Deleting " + file.getAbsolutePath());
+					success &= file.delete();
+				}
+			}
 		}
 
 		if (!success)
@@ -343,6 +343,18 @@ public class FileHandler {
 			return sd.exists() || sd.mkdirs();
 		}
 		return false;
+	}
+
+	private static List<File> getWritableBaseDirectories(Context context) {
+		final List<File> directories = new LinkedList<>();
+		directories.add(context.getFilesDir());
+
+		if (isExternalStorageWritable(context)) directories.add(getExternalFilesDir(context));
+
+		final File tmp = getEmulatedFilesDir(context);
+		if (tmp != null) directories.add(tmp);
+
+		return directories;
 	}
 
 	/**

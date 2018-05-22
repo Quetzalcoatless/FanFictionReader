@@ -7,12 +7,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.StringRes;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.crashlytics.android.Crashlytics;
 import com.spicymango.fanfictionreader.R;
@@ -193,6 +196,12 @@ public class LibraryDownloader extends IntentService {
 		// which is why the service is cancelled.
 		if (hasConnectionError){
 			onUpdateComplete();
+
+			Log.d("LibraryDownloader", "Destroyed due to connection error");
+			if (getBaseContext() != null)
+				new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(getBaseContext(),
+						"Library update failed: connection error", Toast.LENGTH_LONG).show());
+
 			stopSelf();
 			return;
 		}
@@ -314,9 +323,11 @@ public class LibraryDownloader extends IntentService {
 		} catch (IOException e) {
 			// If a connection error occurs, set the flag and cancel the download by returning.
 			hasConnectionError = true;
+			Log.e("LibraryDownloader", "Connection error", e);
 		} catch (StoryNotFoundException e) {
 			// If the story is not found, exit without setting any flags. By not setting an error flag,
 			// notifications are avoided for deleted stories during batch updates.
+			Log.d("LibraryDownloader", "Story not found: " + uri.toString());
 		} catch (ParseException e) {
 			// Parsing errors should be logged on Crashlytics for further analysis.
 			Crashlytics.logException(e);

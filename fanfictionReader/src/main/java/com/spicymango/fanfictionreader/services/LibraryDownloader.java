@@ -87,6 +87,11 @@ public class LibraryDownloader extends IntentService {
 	private final static int NOTIFICATION_DOWNLOAD_ID = 1;
 
 	/**
+	 * Represents how many connection errors can occur in a row before the app gives up
+	 */
+	private final static int CONNECTION_ERROR_THRESHOLD = 2;
+
+	/**
 	 * The number of stories that have been already been checked for updates. This variable is used
 	 * in order to derive the total number of stories queued, which is used to generate the progress
 	 * bar.
@@ -94,7 +99,8 @@ public class LibraryDownloader extends IntentService {
 	private int currentProgress = 0;
 
 	/** Keeps track of errors*/
-	private boolean hasParsingError, hasConnectionError, hasIoError;
+	private int connectionErrors;
+	private boolean hasParsingError, hasIoError;
 
 	/**
 	 * Stores the time at which the update process began. This is used to calculate the time elapsed
@@ -150,13 +156,17 @@ public class LibraryDownloader extends IntentService {
 		context.startService(i);
 	}
 
+	private boolean reachedConnectionErrorThreshold() {
+		return (connectionErrors > CONNECTION_ERROR_THRESHOLD);
+	}
+
 	@Override
 	public void onCreate() {
 		super.onCreate();
 
 		// Clear error flags when the service is initialized.
 		hasParsingError = false;
-		hasConnectionError = false;
+		connectionErrors = 0;
 		hasIoError = false;
 
 		// An atomic integer is used to synchronize incoming requests (which occur on the main
@@ -194,14 +204,16 @@ public class LibraryDownloader extends IntentService {
 		// If the connection error flag is true, a connection error occurred during the current
 		// execution of the service. It is reasonable to assume that further downloads will fail,
 		// which is why the service is cancelled.
-		if (hasConnectionError){
+		if (reachedConnectionErrorThreshold()){
 			onUpdateComplete();
 
-			Log.d("LibraryDownloader", "Destroyed due to connection error");
-			if (getBaseContext() != null)
+			Log.d("LibraryDownloader", "Destroyed due to repeated connection errors");
+			if (getBaseContext() != null) {
 				new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(getBaseContext(),
 						"Library update failed: connection error", Toast.LENGTH_LONG).show());
+			}
 
+			connectionErrors = 0;
 			stopSelf();
 			return;
 		}
@@ -304,6 +316,9 @@ public class LibraryDownloader extends IntentService {
 				if (updated){
 					storiesUpdated.add(storyTitle);
 				}
+
+				// We only keep track of multiple subsequent errors (meaning FFN is down or blocked)
+				connectionErrors = 0;
 			} catch (IOException e) {
 				// This shouldn't happen. Log the exception if it occurs
 				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
@@ -321,9 +336,15 @@ public class LibraryDownloader extends IntentService {
 			}
 
 		} catch (IOException e) {
-			// If a connection error occurs, set the flag and cancel the download by returning.
-			hasConnectionError = true;
-			Log.e("LibraryDownloader", "Connection error", e);
+			// If a connection error occurs, try again until we've reached the error threshold
+			connectionErrors++;
+			Log.e("LibraryDownloader", "Connection error #" + connectionErrors +
+					" for " + uri.toString(), e);
+
+			if (!reachedConnectionErrorThreshold()) {
+				removeNotification(NOTIFICATION_DOWNLOAD_ID);
+				download(intent);
+			}
 		} catch (StoryNotFoundException e) {
 			// If the story is not found, exit without setting any flags. By not setting an error flag,
 			// notifications are avoided for deleted stories during batch updates.
@@ -352,7 +373,7 @@ public class LibraryDownloader extends IntentService {
 		if (storiesUpdated.size() > 0) {
 			// At least one story was updated. Show the title of the updated stories.
 			showUpdateCompleteNotification(storiesUpdated);
-		} else if (hasConnectionError) {
+		} else if (connectionErrors > 0) {
 			showErrorNotification(R.string.error_connection);
 		} else if (hasParsingError) {
 			showErrorNotification(R.string.error_parsing);

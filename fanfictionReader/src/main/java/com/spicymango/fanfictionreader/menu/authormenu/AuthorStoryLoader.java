@@ -86,6 +86,7 @@ class AuthorStoryLoader {
 			final FilterDialog.Builder builder = new FilterDialog.Builder();
 			builder.addSingleSpinner(activity.getString(R.string.filter_sort), mFilter.get(0));
 			builder.addSingleSpinner(activity.getString(R.string.filter_category), mFilter.get(1));
+			builder.addSingleSpinner(activity.getString(R.string.filter_status), mFilter.get(2));
 			builder.show((AuthorMenuActivity) activity);
 		}
 
@@ -139,6 +140,10 @@ class AuthorStoryLoader {
 					}
 					mFilter.add(new SpinnerData(name, label, filterKey, 0));
 				}
+
+				// Filter if complete
+				String[] statusLabel = getContext().getResources().getStringArray(R.array.menu_library_filter_status);
+				mFilter.add(new SpinnerData("status", statusLabel, null, 0));
 			}
 
 			final Matcher storyIdMatcher = PATTERN_STORY_ID.matcher("");
@@ -193,7 +198,18 @@ class AuthorStoryLoader {
 				builder.setCompleted(complete);
 				builder.setReviews(reviews);
 
-				list.add(builder.build());
+				// Filter on completion status
+				switch (mFilter.get(2).getSelected())
+				{
+					case 1:
+						if (complete) list.add(builder.build());
+						break;
+					case 2:
+						if (!complete) list.add(builder.build());
+						break;
+					default:
+						list.add(builder.build());
+				}
 			}
 			return true;
 		}
@@ -319,6 +335,10 @@ class AuthorStoryLoader {
 					}
 					mFilter.add(new SpinnerData(name, label, filterKey, 0));
 				}
+
+				// Filter if complete
+				String[] statusLabel = getContext().getResources().getStringArray(R.array.menu_library_filter_status);
+				mFilter.add(new SpinnerData("status", statusLabel, null, 0));
 			}
 
 			final Matcher storyIdMatcher = PATTERN_STORY_ID.matcher("");
@@ -381,7 +401,18 @@ class AuthorStoryLoader {
 				builder.setCompleted(complete);
 				builder.setReviews(reviews);
 
-				list.add(builder.build());
+				// Filter on completion status
+				switch (mFilter.get(2).getSelected())
+				{
+					case 1:
+						if (complete) list.add(builder.build());
+						break;
+					case 2:
+						if (!complete) list.add(builder.build());
+						break;
+					default:
+						list.add(builder.build());
+				}
 			}
 			return true;
 		}
